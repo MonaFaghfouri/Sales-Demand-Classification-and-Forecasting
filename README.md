@@ -107,7 +107,7 @@ CV² measures variability in non-zero demand size.
 ### Visual Guide
 
 ![Demand Pattern Classification using ADI and
-CV²](images/demand_classification.PNG)
+CV²](demand_classification.PNG)
 
 This segmentation allows the forecasting strategy to adapt to each
 product's statistical behavior instead of applying one model
