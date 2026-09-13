@@ -1,0 +1,7 @@
+numpy>=1.26
+pandas>=2.1
+SQLAlchemy>=2.0
+pyodbc>=5.0
+jdatetime>=5.0
+statsmodels>=0.14
+openpyxl>=3.1
