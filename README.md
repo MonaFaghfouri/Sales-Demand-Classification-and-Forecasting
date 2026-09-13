@@ -368,7 +368,7 @@ Reporting
 ```text
 Sales-Demand-Classification-and-Forecasting/
 │
-├── sales_target_forecasting_v4.py
+├── sales_target_forecasting.py
 │
 ├── README.md
 ├── requirements.txt
