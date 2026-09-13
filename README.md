@@ -440,19 +440,11 @@ Reporting
 ``` text
 Sales-Demand-Classification-and-Forecasting/
 │
-├── sales_target_forecasting_v4.py
 ├── README.md
+├── sales_target_forecasting.py
 ├── requirements.txt
-├── .gitignore
-│
-├── images/
-│   └── demand_classification.png
-│
-├── outputs/
-│   └── .gitkeep
-│
-└── docs/
-    └── methodology.md
+├── methodology.md
+└── demand_classification.png
 ```
 
 ------------------------------------------------------------------------
