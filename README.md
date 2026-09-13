@@ -1,29 +1,38 @@
 # 📈 Sales Demand Classification & Forecasting Pipeline
 
-An end-to-end **Python-based demand analytics, forecasting, and sales target optimization pipeline** designed for real-world sales data.
+> **From raw transactional data to demand intelligence and actionable
+> sales targets.**
 
-The system connects directly to **SQL Server**, analyzes historical product activity and sales behavior, classifies demand patterns, evaluates multiple forecasting strategies through backtesting, and generates data-driven sales targets at both **product and sales-channel levels**.
+An end-to-end **Python-based demand analytics, forecasting, and
+sales-target optimization pipeline** for real-world sales planning.
 
-> **From raw transactional data to demand intelligence and actionable sales targets.**
+The system connects directly to **Microsoft SQL Server**, analyzes
+product activity and historical sales behavior, classifies demand
+patterns, evaluates multiple forecasting strategies through rolling
+backtesting, and generates data-driven targets at both **product and
+sales-channel levels**.
 
----
+------------------------------------------------------------------------
 
 ## 🚀 Project Overview
 
-Sales forecasting becomes particularly challenging when products exhibit very different demand behaviors.
+Sales forecasting becomes difficult when products exhibit fundamentally
+different demand behaviors. Some products sell consistently, while
+others are irregular, intermittent, or highly volatile. Applying the
+same forecasting model to every SKU can therefore produce unreliable
+forecasts and unrealistic targets.
 
-Some products sell consistently, while others experience irregular, intermittent, or highly volatile demand. Applying the same forecasting model to every product can therefore produce unreliable forecasts and unrealistic sales targets.
+This project addresses that problem through a pattern-aware,
+reliability-aware forecasting architecture:
 
-This project addresses that problem through a multi-stage forecasting architecture:
-
-```text
+``` text
 SQL Server
     ↓
 Data Extraction & Cleaning
     ↓
 Product Activity Analysis
     ↓
-Demand Time-Series Construction
+Weekly Demand Time-Series
     ↓
 ADI / CV² Analysis
     ↓
@@ -35,171 +44,250 @@ Rolling Backtesting
     ↓
 Champion Model Selection
     ↓
-Reliability & Bias Analysis
+Reliability & Bias Calibration
     ↓
 Smart Sales Target Generation
     ↓
 Product × Sales Channel Allocation
     ↓
+Hierarchical Reconciliation
+    ↓
 Excel Management Reports
 ```
 
-The objective is not simply to generate forecasts, but to build a **decision-support pipeline for sales planning**.
+The goal is not simply to predict future demand. The pipeline is
+designed as a **decision-support system for sales planning**.
 
----
+------------------------------------------------------------------------
 
-# 🧠 Demand Classification
+## 🧠 Demand Pattern Classification
 
-Products are first analyzed according to their historical activity and demand characteristics.
+Products are classified using two established intermittent-demand
+measures:
 
-Demand behavior is classified using two widely used intermittent-demand measures:
+### Average Demand Interval --- ADI
 
-### Average Demand Interval — ADI
-
-```text
+``` text
 ADI = Number of Time Periods / Number of Non-Zero Demand Periods
 ```
 
 ADI measures how frequently demand occurs.
 
-### Squared Coefficient of Variation — CV²
+### Squared Coefficient of Variation --- CV²
 
-```text
+``` text
 CV² = (Standard Deviation of Non-Zero Demand / Mean Non-Zero Demand)²
 ```
 
-CV² captures variability in demand size.
+CV² measures variability in non-zero demand size.
 
-Using these metrics, products are classified into four demand patterns:
+### Classification Matrix
 
-| Demand Pattern  |    ADI |    CV² | Interpretation                                |
-| --------------- | -----: | -----: | --------------------------------------------- |
-| 🟢 Smooth       | ≤ 1.32 | ≤ 0.49 | Frequent and relatively stable demand         |
-| 🟡 Erratic      | ≤ 1.32 | > 0.49 | Frequent but highly variable demand           |
-| 🔵 Intermittent | > 1.32 | ≤ 0.49 | Infrequent but relatively stable demand sizes |
-| 🔴 Lumpy        | > 1.32 | > 0.49 | Infrequent and highly variable demand         |
+  -----------------------------------------------------------------------------
+  Demand Pattern                      ADI                  CV² Interpretation
+  ------------------ -------------------- -------------------- ----------------
+  🟢 **Smooth**                    ≤ 1.32               ≤ 0.49 Frequent and
+                                                               relatively
+                                                               stable demand
 
-This classification allows the forecasting strategy to adapt to the statistical characteristics of each product instead of applying one model universally.
+  🟡 **Erratic**                   ≤ 1.32              \> 0.49 Frequent but
+                                                               highly variable
+                                                               demand
 
----
+  🔵                              \> 1.32               ≤ 0.49 Infrequent
+  **Intermittent**                                             demand with
+                                                               relatively
+                                                               stable sizes
 
-# 🏭 Product Activity Classification
+  🔴 **Lumpy**                    \> 1.32              \> 0.49 Infrequent and
+                                                               highly variable
+                                                               demand
+  -----------------------------------------------------------------------------
 
-Before forecasting, products are also evaluated based on their production/order history.
+### Visual Guide
 
-Historical order gaps are analyzed using statistics including:
+![Demand Pattern Classification using ADI and
+CV²](images/demand_classification.png)
 
-* Average order gap
-* Median order gap
-* 90th percentile order gap
-* 95th percentile order gap
-* Days since the most recent order
+This segmentation allows the forecasting strategy to adapt to each
+product's statistical behavior instead of applying one model
+universally.
 
-Products are then assigned an operational status:
+------------------------------------------------------------------------
 
-```text
+## 🏭 Product Activity Classification
+
+Before demand forecasting, products are evaluated using historical
+production/order activity.
+
+The pipeline calculates indicators such as:
+
+-   Average order gap
+-   Median order gap
+-   90th-percentile order gap
+-   95th-percentile order gap
+-   Days since the most recent order
+-   Number of historical orders
+-   Number of active order days
+
+Products are then assigned an operational state:
+
+``` text
 Active
 Dormant
 Inactive
 Insufficient History
 ```
 
-Only appropriate products proceed to the forecasting pipeline.
+This layer helps prevent discontinued products or products with
+inadequate history from receiving misleading statistical forecasts.
 
-This prevents discontinued or historically insufficient products from receiving misleading statistical forecasts.
+------------------------------------------------------------------------
 
----
+## 🔮 Pattern-Aware Forecasting Engine
 
-# 🔮 Forecasting Engine
+Instead of relying on one algorithm, the engine evaluates multiple
+forecasting families.
 
-The forecasting engine evaluates multiple model families instead of relying on a single forecasting algorithm.
+### Regular-Demand Models
 
-## Regular Demand Models
+For smoother or more regular demand, candidate models include:
 
-For smoother or more regular demand patterns, candidate models include:
+-   Naive Forecast
+-   Historical Mean
+-   Moving Average
+-   Exponentially Weighted Mean
+-   Recent Median
+-   Simple Exponential Smoothing
+-   Holt Trend
+-   ETS / Exponential Smoothing
+-   Seasonal Naive
+-   ARIMA / SARIMAX
 
-* Naive Forecast
-* Moving Average
-* Historical Mean
-* Exponentially Weighted Mean
-* Simple Exponential Smoothing
-* Holt Trend
-* ETS / Exponential Smoothing
-* Seasonal Naive
-* ARIMA / SARIMAX
-* Recent Median Baselines
+### Intermittent-Demand Models
 
-## Intermittent Demand Models
+For intermittent and lumpy demand, specialized candidates include:
 
-For intermittent and lumpy demand, specialized approaches are evaluated, including:
+-   **Croston**
+-   **SBA --- Syntetos-Boylan Approximation**
+-   **TSB --- Teunter-Syntetos-Babai**
+-   **ADIDA**
+-   **Two-stage occurrence × demand-size models**
+-   Recency-weighted two-stage variants
 
-* Croston
-* SBA — Syntetos-Boylan Approximation
-* TSB — Teunter-Syntetos-Babai
-* ADIDA
-* Two-stage occurrence × demand-size models
+This distinction is important because conventional time-series models
+may perform poorly when a large proportion of historical periods contain
+zero demand.
 
-This distinction is important because conventional time-series models may perform poorly when a large proportion of periods contain zero demand.
+------------------------------------------------------------------------
 
----
+## 🏆 Rolling Backtesting & Champion Model Selection
 
-# 🏆 Champion Model Selection
+Candidate models are evaluated through rolling historical backtests
+before a champion model is selected for each forecastable product.
 
-The system performs rolling backtesting and evaluates candidate models before selecting the final forecasting strategy for each product.
+The evaluation framework considers:
 
-Evaluation considers metrics such as:
+-   **WAPE --- Weighted Absolute Percentage Error**
+-   **MAE --- Mean Absolute Error**
+-   **RMSE --- Root Mean Squared Error**
+-   **Forecast Bias**
+-   Recent-period forecasting performance
+-   Demand occurrence accuracy
+-   Demand-event recall
 
-* **WAPE — Weighted Absolute Percentage Error**
-* **MAE — Mean Absolute Error**
-* **RMSE — Root Mean Squared Error**
-* **Forecast Bias**
-* Recent-period forecasting performance
-* Demand occurrence accuracy
-* Demand-event recall
+Recent backtest folds receive greater weight than older folds, allowing
+model selection to respond to changing demand regimes.
 
-Rather than weighting all historical backtests equally, the pipeline can assign greater importance to recent demand behavior.
+A zero forecast is not permitted to become the champion merely because a
+product contains many zero-demand weeks.
 
-This helps the selected model adapt when the underlying sales regime changes over time.
+------------------------------------------------------------------------
 
----
+## 📅 Sales-Target-Oriented Evaluation
 
-# 📅 Sales-Target-Oriented Evaluation
+A key design choice is that forecasting performance is not evaluated
+only at the weekly level.
 
-An important design choice in this project is that forecasting performance is not evaluated only at the weekly level.
+Because the business objective is approximately monthly sales planning,
+forecasts are also evaluated using:
 
-Because sales targets are often defined over approximately monthly horizons, weekly forecasts are aggregated into:
-
-```text
-4-week target buckets
+``` text
+4-week cumulative demand buckets
 ```
 
-Model selection therefore emphasizes cumulative four-week forecasting accuracy while retaining weekly accuracy as a diagnostic signal.
+Champion selection therefore emphasizes **four-week cumulative forecast
+accuracy**, while weekly accuracy remains a smaller diagnostic signal.
 
-This aligns the statistical objective more closely with the actual business decision.
+This aligns model selection with the actual planning objective.
 
----
+------------------------------------------------------------------------
 
-# ⚖️ Forecast Bias Correction
+## ⚖️ Forecast Bias Correction
 
-Forecasting models may systematically overestimate or underestimate demand.
+Forecasting models can systematically overestimate or underestimate
+demand.
 
-The pipeline therefore measures historical forecast bias during backtesting and can apply a bounded correction when:
+The pipeline measures historical bias during backtesting and can apply a
+bounded correction when:
 
-* sufficient backtesting evidence exists, and
-* systematic bias exceeds a predefined threshold.
+-   sufficient backtesting evidence exists, and
+-   systematic bias exceeds a predefined threshold.
 
-Corrections are intentionally constrained to prevent aggressive adjustments caused by temporary anomalies.
+The correction factor is constrained to prevent temporary anomalies from
+causing aggressive forecast adjustments.
 
----
+------------------------------------------------------------------------
 
-# 🎯 Smart Sales Target Generation
+## 🛡️ Reliability-Aware Forecast Calibration
 
-A statistical forecast and a managerial sales target are not necessarily the same thing.
+Not every statistical forecast should receive the same level of trust.
 
-For this reason, the project explicitly separates:
+Products are assigned forecast-reliability levels based on historical
+backtesting performance.
 
-```text
-Expected Demand Forecast
+``` text
+High Reliability
+      ↓
+Trust the statistical model more
+
+Medium Reliability
+      ↓
+Blend model + robust recent baseline
+
+Low Reliability
+      ↓
+Trust robust recent behavior more
+```
+
+This reduces the risk of unstable models producing extreme or
+operationally unrealistic targets.
+
+------------------------------------------------------------------------
+
+## 📈 Recent Demand Momentum
+
+Recent demand behavior is incorporated through a bounded momentum
+adjustment.
+
+The pipeline compares recent short-term sales with a longer recent
+baseline while constraining the adjustment factor. This allows the
+forecast to react to meaningful changes without simply chasing temporary
+spikes.
+
+------------------------------------------------------------------------
+
+## 🎯 Smart Sales Target Generation
+
+A statistical forecast and a managerial sales target are not necessarily
+the same thing.
+
+The project explicitly separates:
+
+``` text
+Expected Sales Forecast
+        ↓
+Reliability & Momentum Calibration
         ↓
 Management Adjustment
         ↓
@@ -208,54 +296,26 @@ Recommended Sales Target
 
 Recommended targets can incorporate:
 
-* Forecast reliability
-* Recent sales momentum
-* Product activity status
-* Demand pattern
-* Historical sales behavior
-* Conservative upper/lower guardrails
+-   Forecast reliability
+-   Recent sales momentum
+-   Product activity status
+-   Demand pattern
+-   Historical sales behavior
+-   Conservative upper/lower guardrails
 
-This produces targets that are intended to remain **challenging but data-grounded**.
+The result is intended to be **challenging but data-grounded**.
 
----
+Historical management targets can remain available for diagnostic and
+achievement analysis without forcing the statistical forecast toward old
+target values.
 
-# 🛡️ Reliability-Aware Forecasting
+------------------------------------------------------------------------
 
-Not every forecast should receive the same level of trust.
-
-Products are assigned reliability levels based on backtesting performance.
-
-For weaker forecasts, the system can blend the selected model with a robust recent-sales baseline.
-
-Conceptually:
-
-```text
-High Reliability
-      ↓
-Trust statistical model more
-
-Medium Reliability
-      ↓
-Blend model + recent baseline
-
-Low Reliability
-      ↓
-Trust robust recent behavior more
-```
-
-This reduces the risk of extreme targets caused by unstable models.
-
----
-
-# 📊 Hierarchical Product × Channel Forecasting
+## 📊 Hierarchical Product × Sales-Channel Forecasting
 
 The pipeline extends forecasting beyond product-level demand.
 
-Sales targets can also be distributed across sales channels.
-
-The architecture follows a hierarchical structure:
-
-```text
+``` text
 Product Sales Target
         ↓
 Channel Demand Models
@@ -267,82 +327,93 @@ Reliability-Aware Allocation
 Reconciliation
 ```
 
-A reconciliation step ensures that:
+A final reconciliation step guarantees:
 
-```text
+``` text
 Σ Channel Targets = Product Sales Target
 ```
 
-for each product.
+for every product, including after target rounding.
 
-This maintains consistency between operational sales-channel targets and the overall product forecast.
+This maintains consistency between product-level planning and
+operational sales-channel targets.
 
----
+------------------------------------------------------------------------
 
-# 🗄️ Data Pipeline
+## 🗄️ Data Pipeline
 
-The pipeline retrieves data directly from SQL Server rather than requiring intermediate Excel inputs.
+The workflow retrieves data directly from SQL Server and performs the
+analytical handoff in memory rather than depending on intermediate Excel
+input files.
 
-Main data sources include:
+Conceptually, the source data includes:
 
-```text
+``` text
 Production Orders
 Sales Invoices
 Date Dimension
 Historical Sales Targets
 ```
 
-The workflow integrates production activity information with historical sales transactions before constructing the forecasting dataset.
+Database names, server credentials, organization-specific paths, and
+confidential business data are intentionally excluded from the public
+repository.
 
----
+------------------------------------------------------------------------
 
-# 🗓️ Persian / Jalali Calendar Support
+## 🗓️ Persian / Jalali Calendar Support
 
-The pipeline includes support for **Jalali dates** and converts them to Gregorian timestamps for time-series modeling.
+The pipeline supports **Jalali dates** and converts them to Gregorian
+timestamps for time-series modeling.
 
-It also incorporates Iranian calendar characteristics such as:
+It also supports calendar characteristics relevant to Iranian enterprise
+data, including:
 
-* Official holidays
-* Fridays
-* Jalali-to-Gregorian conversion
+-   Fridays
+-   Configured official holidays
+-   Jalali-to-Gregorian conversion
 
-This allows the forecasting workflow to operate correctly on datasets originating from Iranian enterprise systems.
+------------------------------------------------------------------------
 
----
+## 📂 Outputs
 
-# 📂 Output
+The detailed analytical workbook can contain:
 
-The pipeline generates Excel-based diagnostic and management reports containing information such as:
+-   Product activity diagnostics
+-   Demand patterns
+-   ADI and CV²
+-   Historical demand characteristics
+-   Model leaderboards
+-   Rolling backtest results
+-   Champion models
+-   Forecast accuracy metrics
+-   Forecast bias
+-   Reliability levels
+-   Weekly forecasts
+-   Four-week target buckets
+-   Recommended sales targets
+-   Channel-level target allocation
+-   Channel reconciliation
+-   Configuration and methodology notes
 
-* Product activity status
-* Demand pattern
-* ADI
-* CV²
-* Historical demand characteristics
-* Selected forecasting model
-* Forecast accuracy
-* Forecast bias
-* Reliability level
-* Weekly forecasts
-* Four-week forecast buckets
-* Recommended sales targets
-* Channel-level target allocation
-* Model comparison diagnostics
-* Backtesting results
+A second workbook provides a more management-oriented summary suitable
+for operational review.
 
-The resulting reports can be used for further analysis in tools such as **Excel and Power BI**.
+The resulting outputs can also be used for downstream analysis in
+**Excel** and **Power BI**.
 
----
+------------------------------------------------------------------------
 
-# 🛠️ Technology Stack
+## 🛠️ Technology Stack
 
-```text
+``` text
 Python
 ├── pandas
 ├── NumPy
 ├── SQLAlchemy
 ├── pyodbc
 ├── statsmodels
+├── openpyxl
 └── jdatetime
 
 Database
@@ -354,6 +425,7 @@ Analytics
 ├── Rolling Backtesting
 ├── Forecast Bias Analysis
 ├── Demand Classification
+├── Reliability Calibration
 └── Hierarchical Forecast Reconciliation
 
 Reporting
@@ -361,15 +433,14 @@ Reporting
 └── Power BI-ready outputs
 ```
 
----
+------------------------------------------------------------------------
 
-# 📁 Suggested Repository Structure
+## 📁 Repository Structure
 
-```text
+``` text
 Sales-Demand-Classification-and-Forecasting/
 │
-├── sales_target_forecasting.py
-│
+├── sales_target_forecasting_v4.py
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
@@ -384,89 +455,119 @@ Sales-Demand-Classification-and-Forecasting/
     └── methodology.md
 ```
 
----
+------------------------------------------------------------------------
 
-# 🔐 Data Privacy
+## ⚙️ Installation
 
-The original implementation was developed for enterprise sales data.
+Clone the repository and install the required Python packages:
 
-For confidentiality and security reasons:
+``` bash
+pip install -r requirements.txt
+```
 
-* Database credentials are not included.
-* Internal server information is removed from the public version.
-* Raw transactional data is not published.
-* Customer or organization-specific information is excluded.
-* Example outputs should contain anonymized or synthetic data only.
+The public version reads database configuration from environment
+variables rather than storing production credentials directly in source
+code.
 
-Users who wish to reproduce the pipeline should configure their own SQL Server connection and adapt the database schema to their environment.
+Example configuration variables:
 
----
+``` text
+SALES_DB_SERVER
+SALES_DB_NAME
+SALES_DB_USERNAME
+SALES_DB_PASSWORD
+```
 
-# 💡 Key Features
+Users should adapt database table and column mappings to their own
+environment.
 
-* End-to-end SQL-to-forecast pipeline
-* Automatic product activity classification
-* ADI/CV² demand segmentation
-* Smooth, Erratic, Intermittent and Lumpy demand detection
-* Multiple statistical forecasting models
-* Specialized intermittent-demand forecasting
-* Rolling backtesting
-* Recency-aware model evaluation
-* Forecast bias detection and correction
-* Reliability-aware forecast calibration
-* Smart sales target generation
-* Product × sales-channel hierarchical forecasting
-* Forecast reconciliation
-* Jalali calendar support
-* Automated Excel reporting
-* Power BI-ready analytical outputs
+------------------------------------------------------------------------
 
----
+## 🔐 Data Privacy
 
-# 🔭 Future Development
+The original implementation was designed for enterprise sales data.
+
+For confidentiality and security:
+
+-   Database credentials are not included.
+-   Internal server and database information is removed.
+-   Personal computer paths are removed.
+-   Raw transactional data is not published.
+-   Customer and organization-specific information is excluded.
+-   Generated enterprise workbooks are excluded from Git tracking.
+-   Public examples should use anonymized or synthetic data.
+
+------------------------------------------------------------------------
+
+## 💡 Key Features
+
+-   End-to-end SQL-to-forecast pipeline
+-   Automatic product activity classification
+-   ADI/CV² demand segmentation
+-   Smooth, Erratic, Intermittent, and Lumpy demand detection
+-   Pattern-aware forecasting
+-   Specialized intermittent-demand models
+-   Rolling backtesting
+-   Four-week sales-target-oriented evaluation
+-   Recency-aware champion selection
+-   Forecast bias detection and correction
+-   Reliability-aware forecast calibration
+-   Bounded recent-momentum adjustment
+-   Smart sales-target generation
+-   Product × sales-channel hierarchical forecasting
+-   Forecast reconciliation
+-   Jalali calendar support
+-   Automated Excel reporting
+-   Power BI-ready analytical outputs
+
+------------------------------------------------------------------------
+
+## 🔭 Future Development
 
 Potential extensions include:
 
-* Machine-learning forecasting models
-* Gradient boosting with lag and calendar features
-* Probabilistic forecasting
-* Prediction intervals
-* Automated hyperparameter optimization
-* Forecast monitoring and model-drift detection
-* Interactive Power BI dashboards
-* REST API deployment
-* Dockerized forecasting service
-* Automated scheduled model retraining
+-   Machine-learning forecasting with lag and calendar features
+-   Gradient-boosting models
+-   Probabilistic forecasting
+-   Prediction intervals
+-   Automated hyperparameter optimization
+-   Forecast monitoring and model-drift detection
+-   Interactive Power BI dashboards
+-   REST API deployment
+-   Dockerized forecasting service
+-   Automated scheduled retraining
 
----
+------------------------------------------------------------------------
 
-# 👩‍💻 Author
+## 👩‍💻 Author
 
 **Mona Faghfouri Azar**
 
-Data Analyst | AI & Computational Social Science Researcher
+Data Analyst \| AI & Computational Social Science Researcher
 
-Interested in:
-
-`Artificial Intelligence` · `Data Science` · `Time-Series Forecasting` · `NLP` · `Computational Social Science` · `Business Analytics`
+`Artificial Intelligence` · `Data Science` · `Time-Series Forecasting` ·
+`NLP` · `Computational Social Science` · `Business Analytics`
 
 GitHub: **MonaFaghfouri**
 
----
+------------------------------------------------------------------------
 
 ## ⭐ About This Project
 
-This project demonstrates how statistical forecasting can be transformed from a standalone modeling exercise into an **end-to-end business decision-support system**.
+This project demonstrates how statistical forecasting can be transformed
+from a standalone modeling exercise into an **end-to-end business
+decision-support system**.
 
 Instead of asking only:
 
-> *“Which model predicts next week's sales?”*
+> *"Which model predicts next week's sales?"*
 
 the pipeline addresses a broader question:
 
-> **“Given the behavior, uncertainty, recent trajectory, and sales-channel structure of each product, what forecast and sales target can support a defensible business decision?”**
+> **"Given the behavior, uncertainty, recent trajectory, and
+> sales-channel structure of each product, what forecast and sales
+> target can support a defensible business decision?"**
 
----
+------------------------------------------------------------------------
 
 ⭐ If you find this project useful, consider starring the repository.
-
